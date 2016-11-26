@@ -1,0 +1,20 @@
+' Gambas class file
+
+Public Sub Form_Open()
+
+SwitchButtonSavePrompt.Value = eSpeakGUI.bSavePrompt                'Set the SwithButton value
+SwitchButtonGreeting.Value = eSpeakGUI.bGreeting                    'Set the SwithButton value
+TextBoxGreeting.text = eSpeakGUI.sGreeting                          'Put the 'Greeting' string in the TextBox
+
+End
+
+
+Public Sub ButtonSave_Click()                                       'What to do when the 'Save' button is clicked
+
+eSpeakGUI.bSavePrompt = SwitchButtonSavePrompt.Value                'Set the users preference for a 'Save' prompt on closure
+eSpeakGUI.bGreeting = SwitchButtonGreeting.Value                    'Set the users preference for a 'Greeting' on start
+eSpeakGUI.sGreeting = TextBoxGreeting.Text                          'Set the 'Greeting' string
+
+Me.Close                                                            'Close the form
+
+End

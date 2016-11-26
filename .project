@@ -1,0 +1,22 @@
+# Gambas Project File 3.0
+# Compiled with Gambas 3.9.1
+Title=eSpeakGUI
+Startup=eSpeakGUI
+Icon=eSpeakGUI_Icon.png
+Version=0.1.0
+Component=gb.image
+Component=gb.qt4
+Component=gb.form
+Component=gb.eval
+Component=gb.eval.highlight
+Component=gb.form.dialog
+Component=gb.form.editor
+Component=gb.settings
+Component=gb.qt4.ext
+Description="Simple text to speech GUI for 'eSpeak'"
+Authors="Charlie Ogier"
+TabSize=2
+Language=en_US
+CreateShortcut=1
+Vendor=cogier
+Packager=1

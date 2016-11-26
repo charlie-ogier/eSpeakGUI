@@ -1,0 +1,225 @@
+' Gambas class file
+
+Public sDirty As String                                             'Stores the text on the screen to see if it has changed
+Public bSavePrompt As Boolean                                       'Does the user want the Save prompt on a 'Dirty' doucument
+Public bGreeting As Boolean                                         'Does the user want the 'Greeting' message on start
+Public sGreeting As String                                          'The string to store the greeting message
+Public sAccent As String                                            'Stores the choosen accent
+Public sList As String[] = ["en", "en-gb", "en-uk-north", "en-sc", "en-wmids", "en-us", "en-wi"] 'String for Accent type"
+
+Public Sub Form_Open()                                              'What to do when the program starts
+
+LabelVersion.Text = "Version 0.1.0"                                 'Display the programs version number
+Start                                                               'Go to the 'Start' routine
+
+End
+
+Public Sub Start()
+Dim sTitle As String                                                'String for sSpeak title
+Dim byPos As Byte                                                   'Used to limit the length of the '--version' output string
+
+GetSettings                                                         'Get the settings
+PopulateAccentComboBox                                              'Fill the Accent ComboBox with options
+
+Shell "espeak --version" To sTitle                                  'Shell the eSpeak version to sTitle
+TextEditor1.Font.Size = 12
+
+If sTitle = "" Then                                                 'Check to see if there is output and if not..
+  sTitle = "You need to install 'eSpeak'"                           'Create message that you need to install eSpeak
+  Me.Title = sTitle                                                 'Put up the message as Title
+  TextEditor1.Text = sTitle                                         'Put up the message on the Editor
+  HBoxBottomButtons.enabled = False                                 'Disable the bottom controls
+  HBoxTopButtons.Enabled = False                                    'Disable the top controls
+Else
+  byPos = InStr(sTitle, "Data")                                     'Find where the word 'Data' is located in sTitle
+  sTitle = "Using " & Trim(Left(sTitle, byPos - 1)) & 
+           " - Released under GPL 3"                                'Build a new sTitle string
+  LabelTitle.text = sTitle                                          'Put up the details of eSpeak
+  TextEditor1.SetFocus                                              'Set the focus on the TextEditor
+  If bGreeting Then Shell "espeak -v " & 
+                          sList[ComboBoxAccent.Index] & 
+                          " -a 200 -s 125 " & Chr(34) & 
+                          sGreeting & Chr(34)                       'Run out a welcome message in speech if the user chooses
+Endif
+
+End
+
+Public Sub PopulateAccentComboBox()                                 'To poulate the ComboBox
+Dim sList As String[] = ["Default", "British", "North UK", "Scottish", "West Midlands", "USA", "West Indies"] 'Accent list
+Dim sTemp As String                                                 'Temp string
+
+For Each sTemp In sList                                             'For each item in accent list...
+  ComboBoxAccent.Add(sTemp)                                         'Add it to the ComboBox list
+Next
+
+ComboBoxAccent.text = sAccent                                       'Set the ComboBox string
+
+End
+
+Public Sub ButtonSpeak_Click()                                      'Start to speak the text
+
+Shell "espeak -v " & sList[ComboBoxAccent.Index] &
+      " -a " & SpinBoxAmplitude.Value & " -g " & 
+      SpinBoxWordGap.Value & " -p " & SpinBoxPitch.Value & 
+      " -s " & SpinBoxSpeed.Value & " " & Chr(34) & 
+      TextEditor1.Text & Chr(34)                                    'Shell the details
+
+End
+
+Public Sub AllToolButtons_Click(Optional sName As String)           'Controls what happens when a tool button is pressed
+Dim siAnswer As Short                                               'To hold the answer to 'Save' or not
+
+If Not sname Then sName = Last.name                                 'What is the button pressed?
+
+Select Case sName                                                   'Select the correct commands to run depending on which button is clicked
+  Case "ToolButtonCopy"                                             'If Copy..
+    TextEditor1.Copy                                                'Copy the highlighted text
+  Case "ToolButtonPaste"                                            'If Paste..
+    TextEditor1.Paste                                               'Paste the contents of the Clipboard
+  Case "ToolButtonSaveAs"                                           'If SaveAs..
+    Dialog.Title = "Save file as"                                   'Add a title to the Dialog
+    Dialog.Filter = ["*.txt", "Text Files"]                         'Set the Dialog filter
+    If Dialog.SaveFile() Then Return                                'If 'Cancel' is pressed then get out of here
+    File.Save(Dialog.Path, TextEditor1.Text)                        'Save file
+  Case "ToolButtonOpen"                                             'If Open..
+    Dialog.Title = "Open file"                                      'Add a title to the Dialog
+    Dialog.Filter = ["*.txt", "Text Files"]                         'Set the Dialog filter
+    If Dialog.OpenFile() Then Return                                'If no file is selected get out of here
+    TextEditor1.text = File.Load(Dialog.Path)                       'Open selected file
+    sDirty = TextEditor1.Text                                       'Put the text in sDirty
+  Case "Exit"                                                       'If Exit..
+    If sDirty <> TextEditor1.Text Then                              'If the text and sDirty are different then
+      siAnswer = Message.Warning("Save changes?", "Save as..", "" &
+      "Close without saving")                                       'Put up a message to say the file has changed and you might want to save it..
+      If siAnswer = 1 Then AllToolButtons_Click("ToolButtonSaveAs") 'If the Save option is selected then recall this routine
+    End If
+  Case "ToolButtonAbout"                                            'If About..
+    Message.Info("Charlie Ogier (C) 2016\nType in some text and " &
+    "press the 'Speak' button\nLicenced under GPL 3.0\n" &
+    "Send bugs to bugs@cogier.com\n'Enjoy!'", "Done")               'Put up a message
+End Select
+
+End
+
+Public Sub Form_Close()                                             'What to do when the form is closed
+
+SaveSettings
+If bSavePrompt Then AllToolButtons_Click("Exit")                    'Go to the AllButtons_Click routine with the value 'Exit' if the user has choosen to do so
+
+End
+
+Public Sub ButtonExit_Click()                                       'What to do if the Exit button is pressed
+
+Me.Close                                                            'Close the form
+
+End
+
+Public Sub TextEditor1_Change()                                     'What to do if the text in the TextEditor is changed
+
+If TextEditor1.text <> "" Then                                      'If there is text in the TextEditor then..
+  ButtonSpeak.Enabled = True                                        'Enable the Speak button
+  ButtonExample.Enabled = False                                     'Disable the Example button
+Else                                                                'Else..
+  ButtonSpeak.Enabled = False                                       'Disable the Speak button
+  ButtonExample.Enabled = True                                      'Enable the Example button
+Endif
+
+TextEditor1.SetFocus                                                'Set the focus on the TextEditor
+
+End
+
+Public Sub ButtonExample_Click()                                    'What to do if the Example button is clicked
+
+TextEditor1.Text = "Hey diddle diddle, the cat and the fiddle,\n" & 
+                   "The cow jumped over the moon.\n" &
+                   "The little dog laughed to see such fun,\n" & 
+                   "And the dish ran away with the spoon!"          'Add text to the TextEditor
+ButtonSpeak_Click                                                   'Click the Speak button
+
+End
+
+Public Sub ButtonClear_Click()                                      'What to do if the Clear button is clicked
+
+TextEditor1.Clear                                                   'Clear the TextEditor
+TextEditor1_Change                                                  'Run the TextEditor1_Change routine
+
+End
+
+Public Sub ButtonDefault_Click()
+
+SpinBoxAmplitude.Value = 100                                        'Reset the Amplitude value
+SpinBoxWordGap.value = 1                                            'Reset the Word Gap value
+SpinBoxPitch.Value = 50                                             'Reset the Pitch value
+SpinBoxSpeed.Value = 160                                            'Reset the Speed value
+
+End
+
+Public Sub SaveSettings()                                           'Save the Settings
+
+Settings["SpinBoxAmplitude"] = SpinBoxAmplitude.Value               'Save the Amplitude value
+Settings["SpinBoxWordGap"] = SpinBoxWordGap.value                   'Save the Word Gap value
+Settings["SpinBoxPitch"] = SpinBoxPitch.Value                       'Save the Pitch value
+Settings["SpinBoxSpeed"] = SpinBoxSpeed.Value                       'Save the Speed value
+Settings["bSavePrompt"] = bSavePrompt                               'Save the 'Save' prompt setting
+Settings["bGreeting"] = bGreeting                                   'Save the 'Greeting' setting
+Settings["sGreeting"] = sGreeting                                   'Save the 'Greeting' string
+Settings["sAccent"] = sAccent                                       'Save the 'Accent' string
+Settings.Write(Me, "Window")                                        'Save the size and position of the main form
+
+End
+
+Public Sub GetSettings()                                            'Get the settings if they exist or create them if they don't
+
+If Not Settings["Geometry"] Then                                    'If the 'Window Geometry' is not stored..
+  Me.Center                                                         'Centre the form
+  Me.Height = 450                                                   'Set the form height
+  Me.Width = 680                                                    'Set the form width
+End If
+
+SpinBoxAmplitude.Value = Settings["SpinBoxAmplitude", 100]          'Get the Amplitude value
+SpinBoxWordGap.value = Settings["SpinBoxWordGap", 1]                'Get the Word Gap value
+SpinBoxPitch.Value = Settings["SpinBoxPitch", 50]                   'Get the Pitch value
+SpinBoxSpeed.Value = Settings["SpinBoxSpeed", 160]                  'Get the Speed value
+bSavePrompt = Settings["bSavePrompt", True]                         'Get the 'Save' prompt setting
+bGreeting = Settings["bGreeting", True]                             'Get the 'Greeting' setting
+sGreeting = Settings["sGreeting", "Hello and welcome"]              'Get the 'Greeting' string
+sAccent = Settings["sAccent", "Default"]                            'Get the 'Accent' string
+Settings.Read(Me, "Window")                                         'Get the size and position of the main form"
+
+End
+
+Public Sub ToolButtonOptions_Click()                                'What to do if the 'Option' button is clicked
+
+Options.ShowModal                                                   'Open the 'Options' form
+
+End
+
+Public Sub ToolButtonStop_Click()                                   'This will kill 'eSpeak' if running
+Dim sTemp As String                                                 'Temp variable
+Dim sLoop, sLoopHold As String                                      'Strings to hold the 'ps aux..' output while any double spaces are removed
+Dim sPID As String                                                  'To hold the PID number
+Dim siCount1, siCount2 As Short                                     'Counters
+
+Shell "ps aux | grep espeak" To sTemp                               'Find the details of running eSpeak program(s) and store in sTemp
+
+For Each sLoop In Split(sTemp, "\n")                                'Loop through the details found 
+  If sLoop = "" Then Break                                          'If nothing found get out of loop
+
+  Repeat                                                            'This loop will repeat until all the 'Double Spaces' have been removed
+    sLoopHold = sLoop                                               'sLoophold keeps a copy of sLoop
+    sLoop = Replace(sLoop, "  ", " ")                               'Remove any double spaces in sLoop and replace with one. This may leave some double spaces if there are more than 2 spaces in a row
+  Until sLoop = sLoopHold                                           'Check to see if strings are the same, if not repeat to find more double spaces
+
+  siCount1 = InStr(sLoop, " ")                                      'Find the first space in the string
+  siCount2 = InStr(sLoop, " ", siCount1 + 1)                        'Find the second space in the string
+  sPID = Trim(Mid(sLoop, siCount1, siCount2 - siCount1))            'Extract the PID from the string
+  Shell "kill -9 " & sPID                                           'Kill the program
+Next
+
+End
+
+Public Sub ComboBoxAccent_Change()                                  'What to do if the Accent is changed
+
+sAccent = ComboBoxAccent.Text                                       'Set sAccent to the choosen text
+
+End
